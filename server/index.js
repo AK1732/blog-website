@@ -1,0 +1,39 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import 'express-async-errors';
+
+import { notFound } from './middleware/notFound.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import authRoutes from './routes/authRoutes.js';
+import blogRoutes from './routes/blogRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+
+const app = express();
+
+app.use(helmet());
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.use('/api', authRoutes);
+app.use('/api', blogRoutes);
+app.use('/api', categoryRoutes);
+app.use('/api', commentRoutes);
+app.use('/api', dashboardRoutes);
+
+app.use(notFound);
+app.use(errorHandler);
+
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+  console.log(`CORS origin: ${process.env.CORS_ORIGIN || '*'}`);
+});
