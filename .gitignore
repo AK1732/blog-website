@@ -1,0 +1,17 @@
+node_modules/
+server/node_modules/
+blogging-ui/node_modules/
+blogging-ui/dist/
+dist/
+
+.env
+server/.env
+blogging-ui/.env
+*.local
+
+*.log
+vite.log
+vite-*.log
+
+.DS_Store
+Thumbs.db
