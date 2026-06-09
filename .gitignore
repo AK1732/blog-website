@@ -3,6 +3,7 @@ server/node_modules/
 blogging-ui/node_modules/
 blogging-ui/dist/
 dist/
+blogging-ui/.vite/
 
 .env
 server/.env
