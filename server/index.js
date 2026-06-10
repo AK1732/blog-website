@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import 'express-async-errors';
 
+import { validateServerEnv } from './config/env.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
@@ -11,6 +12,8 @@ import blogRoutes from './routes/blogRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+
+validateServerEnv();
 
 const app = express();
 
