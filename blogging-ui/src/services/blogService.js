@@ -61,3 +61,23 @@ export async function publishBlog(id) {
   const { data } = await api.patch(`/blogs/${id}/publish`);
   return data.blog;
 }
+
+export async function unpublishBlog(id) {
+  const { data } = await api.patch(`/blogs/${id}/unpublish`);
+  return data.blog;
+}
+
+export async function submitBlog(id) {
+  const { data } = await api.patch(`/blogs/${id}/submit`);
+  return data.blog;
+}
+
+export async function approveBlog(id) {
+  const { data } = await api.patch(`/blogs/${id}/approve`);
+  return data.blog;
+}
+
+export async function rejectBlog(id) {
+  const { data } = await api.patch(`/blogs/${id}/reject`);
+  return data.blog;
+}

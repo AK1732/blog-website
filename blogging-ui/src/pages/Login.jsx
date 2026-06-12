@@ -39,7 +39,7 @@ export default function Login() {
     try {
       const result = await login({ email, password });
       showToast(result.localMode ? 'Logged in locally. Configure PostgreSQL for real API publishing.' : 'Welcome back.');
-      navigate('/dashboard', { replace: true });
+      navigate(result.user?.role === 'writer' ? '/writer' : '/dashboard', { replace: true });
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Login failed'), 'error');
     } finally {

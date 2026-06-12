@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
 import { useToast } from '../../components/useToast';
-import { deleteBlog, getBlogs, publishBlog } from '../../services/blogService';
+import { approveBlog, deleteBlog, getBlogs, publishBlog, rejectBlog, unpublishBlog } from '../../services/blogService';
 import { getApiErrorMessage } from '../../utils/apiError';
 import '../../styles/admin.css';
 
@@ -37,6 +37,27 @@ export default function BlogManagementAdmin() {
       load();
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Failed to publish blog'), 'error');
+    }
+  }
+
+  async function handleUnpublish(id) {
+    try {
+      await unpublishBlog(id);
+      showToast('Blog unpublished.');
+      load();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to unpublish blog'), 'error');
+    }
+  }
+
+  async function handleReview(id, approved) {
+    try {
+      if (approved) await approveBlog(id);
+      else await rejectBlog(id);
+      showToast(approved ? 'Blog approved and published.' : 'Blog rejected.');
+      load();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to review blog'), 'error');
     }
   }
 
@@ -83,10 +104,13 @@ export default function BlogManagementAdmin() {
                     <h3>{blog.title}</h3>
                     <p>{blog.category_name || 'General'} / {blog.author_name || 'Admin'} / {new Date(blog.created_at).toLocaleDateString()}</p>
                   </div>
-                  <span>{blog.status || 'draft'}</span>
+                  <span>{blog.approval_status || blog.status || 'draft'}</span>
                   <div className="admin-row-actions">
                     <Link to={`/dashboard/blogs/${blog.id}/edit`}>Edit</Link>
+                    {blog.approval_status === 'pending' && <button onClick={() => handleReview(blog.id, true)}>Approve</button>}
+                    {blog.approval_status === 'pending' && <button onClick={() => handleReview(blog.id, false)}>Reject</button>}
                     {blog.status !== 'published' && <button onClick={() => handlePublish(blog.id)}>Publish</button>}
+                    {blog.status === 'published' && <button onClick={() => handleUnpublish(blog.id)}>Unpublish</button>}
                     <button onClick={() => handleDelete(blog.id)}>Delete</button>
                   </div>
                 </article>

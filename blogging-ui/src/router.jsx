@@ -17,6 +17,10 @@ import BlogManagementAdmin from './pages/admin/BlogManagementAdmin';
 import CategoriesAdmin from './pages/admin/CategoriesAdmin';
 import CommentsAdmin from './pages/admin/CommentsAdmin';
 import SettingsAdmin from './pages/admin/SettingsAdmin';
+import WritersAdmin from './pages/admin/WritersAdmin';
+import WriterBlogs from './pages/writer/WriterBlogs';
+import WriterDashboard from './pages/writer/WriterDashboard';
+import WriterProfile from './pages/writer/WriterProfile';
 
 import Blogs from './pages/Blogs';
 import BlogDetails from './pages/BlogDetails';
@@ -34,7 +38,7 @@ export default function AppRouter() {
           <Route
             path="dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <DashboardAdmin />
               </ProtectedRoute>
             }
@@ -42,7 +46,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/blogs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <BlogManagementAdmin />
               </ProtectedRoute>
             }
@@ -50,7 +54,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/blogs/add"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <AddBlogAdmin />
               </ProtectedRoute>
             }
@@ -58,7 +62,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/blogs/:id/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <AddBlogAdmin />
               </ProtectedRoute>
             }
@@ -68,7 +72,7 @@ export default function AppRouter() {
           <Route
             path="dashboard/categories"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <CategoriesAdmin />
               </ProtectedRoute>
             }
@@ -76,16 +80,81 @@ export default function AppRouter() {
           <Route
             path="dashboard/comments"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <CommentsAdmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="dashboard/writers"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <WritersAdmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="dashboard/analytics"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <DashboardAdmin />
               </ProtectedRoute>
             }
           />
           <Route
             path="dashboard/settings"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['admin']}>
                 <SettingsAdmin />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="writer"
+            element={
+              <ProtectedRoute roles={['writer']}>
+                <WriterDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="writer/blogs"
+            element={
+              <ProtectedRoute roles={['writer']}>
+                <WriterBlogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="writer/drafts"
+            element={
+              <ProtectedRoute roles={['writer']}>
+                <WriterBlogs draftsOnly />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="writer/blogs/add"
+            element={
+              <ProtectedRoute roles={['writer']}>
+                <AddBlogAdmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="writer/blogs/:id/edit"
+            element={
+              <ProtectedRoute roles={['writer']}>
+                <AddBlogAdmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="writer/profile"
+            element={
+              <ProtectedRoute roles={['writer']}>
+                <WriterProfile />
               </ProtectedRoute>
             }
           />

@@ -4,22 +4,20 @@ import { NavLink } from 'react-router-dom';
 import '../../styles/admin.css';
 
 const items = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/dashboard/blogs', label: 'Blogs' },
-  { to: '/dashboard/writers', label: 'Writers' },
-  { to: '/dashboard/categories', label: 'Categories' },
-  { to: '/dashboard/comments', label: 'Comments' },
-  { to: '/dashboard/analytics', label: 'Analytics' },
-  { to: '/dashboard/settings', label: 'Settings' },
+  { to: '/writer', label: 'Dashboard' },
+  { to: '/writer/blogs', label: 'My Blogs' },
+  { to: '/writer/blogs/add', label: 'Create Blog' },
+  { to: '/writer/drafts', label: 'Drafts' },
+  { to: '/writer/profile', label: 'Profile' },
 ];
 
-export default function Sidebar() {
+export default function WriterSidebar() {
   const [open, setOpen] = useState(false);
-  let email = 'demo@bluepurple.local';
+  let email = 'writer@bluepurple.local';
   try {
     email = JSON.parse(localStorage.getItem('auth_user') || '{}')?.email || email;
   } catch {
-    email = 'demo@bluepurple.local';
+    email = 'writer@bluepurple.local';
   }
 
   return (
@@ -28,7 +26,7 @@ export default function Sidebar() {
         className={`admin-sidebar-toggle ${open ? 'is-open' : ''}`}
         type="button"
         onClick={() => setOpen((current) => !current)}
-        aria-label={open ? 'Close admin menu' : 'Open admin menu'}
+        aria-label={open ? 'Close writer menu' : 'Open writer menu'}
       >
         {open ? '<' : '>'}
       </button>
@@ -40,7 +38,7 @@ export default function Sidebar() {
           <span>BP</span>
           <div>
             <strong>BluePurple</strong>
-            <small>Admin Console</small>
+            <small>Writer Studio</small>
           </div>
         </div>
 
@@ -49,7 +47,7 @@ export default function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/dashboard'}
+              end={item.to === '/writer'}
               className={({ isActive }) => `admin-nav-link ${isActive ? 'is-active' : ''}`}
               onClick={() => setOpen(false)}
             >

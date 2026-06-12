@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
+import WriterSidebar from '../../components/dashboard/WriterSidebar';
 import { useToast } from '../../components/useToast';
-import { createBlog, getBlog, updateBlog } from '../../services/blogService';
+import { createBlog, getBlog, submitBlog, updateBlog } from '../../services/blogService';
+import { getCurrentUser } from '../../services/authService';
 import { getCategories } from '../../services/categoryService';
 import { getApiErrorMessage } from '../../utils/apiError';
 import '../../styles/admin.css';
@@ -14,6 +16,8 @@ export default function AddBlogAdmin() {
   const editing = Boolean(id);
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const currentUser = getCurrentUser();
+  const isWriter = currentUser?.role === 'writer';
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
     title: '',
@@ -63,16 +67,17 @@ export default function AddBlogAdmin() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  async function handleSubmit(status) {
+  async function handleSubmit(action) {
     setTouched({ title: true, content: true });
     if (Object.keys(errors).length) return;
     setSaving(true);
     try {
-      const payload = { ...form, status };
-      if (editing) await updateBlog(id, payload);
-      else await createBlog(payload);
-      showToast(status === 'published' ? 'Blog published.' : 'Draft saved.');
-      navigate('/dashboard/blogs');
+      const status = isWriter ? 'draft' : action;
+      const payload = { ...form, status, approval_status: action === 'submit' ? 'pending' : form.approval_status };
+      const blog = editing ? await updateBlog(id, payload) : await createBlog(payload);
+      if (action === 'submit') await submitBlog(blog.id);
+      showToast(action === 'submit' ? 'Blog submitted for review.' : status === 'published' ? 'Blog published.' : 'Draft saved.');
+      navigate(isWriter ? '/writer/blogs' : '/dashboard/blogs');
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Could not reach API. Your draft UI is ready, but database auth may need setup.'), 'error');
     } finally {
@@ -82,15 +87,15 @@ export default function AddBlogAdmin() {
 
   return (
     <div className="admin-shell">
-      <Sidebar />
+      {isWriter ? <WriterSidebar /> : <Sidebar />}
       <div className="admin-main">
         <Topbar />
         <main className="admin-content">
           <section className="admin-page-heading">
             <div>
-              <p>Publishing workflow</p>
+              <p>{isWriter ? 'Writer workflow' : 'Publishing workflow'}</p>
               <h1>{editing ? 'Edit Blog' : 'Add Blog'}</h1>
-              <span>Write, categorize, preview, and publish from one focused workspace.</span>
+              <span>{isWriter ? 'Write drafts and submit polished articles for admin review.' : 'Write, categorize, preview, and publish from one focused workspace.'}</span>
             </div>
             <button type="button" onClick={() => handleSubmit('draft')} disabled={saving}>
               Save draft
@@ -147,13 +152,19 @@ export default function AddBlogAdmin() {
 
             <aside className="admin-publish-card">
               <div className="admin-status-pill">Draft mode</div>
-              <h2>Publish Settings</h2>
-              <p>Drafts stay hidden from public pages until you publish them.</p>
+              <h2>{isWriter ? 'Review Settings' : 'Publish Settings'}</h2>
+              <p>{isWriter ? 'Submitted posts stay hidden until an admin approves them.' : 'Drafts stay hidden from public pages until you publish them.'}</p>
 
               <div className="admin-publish-actions">
-                <button type="button" onClick={() => handleSubmit('published')} disabled={saving}>
-                  {saving ? 'Saving...' : 'Publish Blog'}
-                </button>
+                {isWriter ? (
+                  <button type="button" onClick={() => handleSubmit('submit')} disabled={saving}>
+                    {saving ? 'Submitting...' : 'Submit for Review'}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => handleSubmit('published')} disabled={saving}>
+                    {saving ? 'Saving...' : 'Publish Blog'}
+                  </button>
+                )}
                 <button type="button" onClick={() => handleSubmit('draft')} disabled={saving}>
                   Save Draft
                 </button>

@@ -62,8 +62,9 @@ export default function DashboardAdmin() {
           <section className="admin-metric-grid">
             <MetricCard label="Total Blogs" value={loading ? '-' : totalBlogs} tone="tone-blue" />
             <MetricCard label="Published" value={loading ? '-' : publishedBlogs} tone="tone-green" />
-            <MetricCard label="Drafts" value={loading ? '-' : draftBlogs} tone="tone-purple" />
-            <MetricCard label="Comments" value={loading ? '-' : stats?.total_comments ?? 0} tone="tone-slate" />
+            <MetricCard label="Pending Blogs" value={loading ? '-' : stats?.pending_blogs ?? draftBlogs} tone="tone-purple" />
+            <MetricCard label="Writers" value={loading ? '-' : stats?.total_writers ?? 0} tone="tone-slate" />
+            <MetricCard label="Comments" value={loading ? '-' : stats?.total_comments ?? 0} tone="tone-blue" />
           </section>
 
           <section className="admin-table-card">

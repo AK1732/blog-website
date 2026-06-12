@@ -1,10 +1,11 @@
 import { Router } from 'express';
 
-import { getDashboardStats } from '../controllers/dashboardController.js';
-import { requireAuth } from '../middleware/auth.js';
+import { getAdminDashboardStats, getWriterDashboardStats } from '../controllers/dashboardController.js';
+import { authenticateUser, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/dashboard/stats', requireAuth, getDashboardStats);
+router.get('/dashboard/stats', authenticateUser, requireAdmin, getAdminDashboardStats);
+router.get('/writer/dashboard/stats', authenticateUser, getWriterDashboardStats);
 
 export default router;

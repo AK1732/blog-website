@@ -12,6 +12,7 @@ import blogRoutes from './routes/blogRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 validateServerEnv();
 
@@ -31,6 +32,7 @@ app.use('/api', blogRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', dashboardRoutes);
+app.use('/api', userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role VARCHAR(20) DEFAULT 'admin',
+  role VARCHAR(20) DEFAULT 'writer',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS blogs (
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   status VARCHAR(20) DEFAULT 'draft',
+  approval_status VARCHAR(20) DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -36,7 +37,12 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_blogs_status ON blogs(status);
+CREATE INDEX IF NOT EXISTS idx_blogs_approval_status ON blogs(approval_status);
+CREATE INDEX IF NOT EXISTS idx_blogs_author_id ON blogs(author_id);
 CREATE INDEX IF NOT EXISTS idx_blogs_category_id ON blogs(category_id);
 CREATE INDEX IF NOT EXISTS idx_blogs_created_at ON blogs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_blog_id ON comments(blog_id);
 CREATE INDEX IF NOT EXISTS idx_comments_status ON comments(status);
+
+ALTER TABLE users ALTER COLUMN role SET DEFAULT 'writer';
+ALTER TABLE blogs ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'pending';

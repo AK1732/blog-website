@@ -17,7 +17,7 @@ export async function login(payload) {
       id: 'local-admin',
       name: 'Local Publisher',
       email: payload.email || 'admin@bluepurple.local',
-      role: 'admin',
+      role: payload.email?.includes('writer') ? 'writer' : 'admin',
     };
     setToken('local-admin-token');
     localStorage.setItem('auth_user', JSON.stringify(user));
