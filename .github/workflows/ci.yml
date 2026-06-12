@@ -1,62 +1,170 @@
-name: CI
+name: CI/CD
 
+# Run the pipeline whenever code is pushed to main or a pull request targets main.
 on:
   push:
     branches:
       - main
-      - master
   pull_request:
+    branches:
+      - main
+
+# Cancel older runs for the same branch or pull request when newer commits arrive.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Keep the default GitHub token permissions minimal for a read-only CI workflow.
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  FRONTEND_DIR: blogging-ui
+  BACKEND_DIR: server
 
 jobs:
-  backend:
-    name: Backend checks
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: server
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: server/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check server entrypoint syntax
-        run: node --check index.js
-
   frontend:
     name: Frontend checks
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: blogging-ui
+        working-directory: ${{ env.FRONTEND_DIR }}
 
     steps:
+      # Download the repository source code into the runner.
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Install Node.js and enable npm dependency caching for the frontend lockfile.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: blogging-ui/package-lock.json
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
 
-      - name: Install dependencies
+      # Install exact dependency versions from package-lock.json for reproducible builds.
+      - name: Install frontend dependencies
         run: npm ci
 
+      # Run ESLint so pull requests fail before broken code reaches main.
       - name: Lint frontend
         run: npm run lint
 
+      # Build the production React/Vite bundle and fail if compilation breaks.
       - name: Build frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:5000/api' }}
         run: npm run build
+
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.BACKEND_DIR }}
+
+    steps:
+      # Download the repository source code into the runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Node.js and enable npm dependency caching for the backend lockfile.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/package-lock.json
+
+      # Install exact dependency versions from package-lock.json for reproducible builds.
+      - name: Install backend dependencies
+        run: npm ci
+
+      # Validate the Express entrypoint syntax without starting external services.
+      - name: Check backend syntax
+        run: node --check index.js
+
+  docker:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    needs:
+      - frontend
+      - backend
+
+    env:
+      # These are CI-only defaults. Production values should live in GitHub Secrets and Render env vars.
+      PORT: 5000
+      FRONTEND_PORT: 5173
+      CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-jwt-secret-change-in-render' }}
+      JWT_EXPIRES_IN: 1d
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
+      DB_NAME: blogging_website
+      VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:5000/api' }}
+
+    steps:
+      # Download the repository source code into the runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Enable Docker Buildx, the recommended builder for modern Docker workflows.
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build the backend Docker image and fail fast if the Dockerfile is invalid.
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: false
+          load: true
+          tags: blogging-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      # Build the frontend Docker image with the public API URL injected at build time.
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./blogging-ui
+          file: ./blogging-ui/Dockerfile
+          push: false
+          load: true
+          tags: blogging-frontend:ci
+          build-args: |
+            VITE_API_URL=${{ env.VITE_API_URL }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      # Build the complete Compose stack, including PostgreSQL compatibility.
+      - name: Build Docker Compose stack
+        run: docker compose build
+
+      # Start PostgreSQL, backend, and frontend containers for an integration smoke test.
+      - name: Start Docker Compose stack
+        run: docker compose up -d
+
+      # Confirm the Express API health endpoint is reachable from the runner.
+      - name: Verify backend health endpoint
+        run: curl --fail --retry 12 --retry-delay 5 http://localhost:5000/health
+
+      # Confirm the frontend container serves the built React application.
+      - name: Verify frontend health endpoint
+        run: curl --fail --retry 12 --retry-delay 5 http://localhost:5173/
+
+      # Always print container status and logs, then stop containers to keep the runner clean.
+      - name: Show Docker logs
+        if: always()
+        run: docker compose logs
+
+      - name: Stop Docker Compose stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
