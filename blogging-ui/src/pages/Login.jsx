@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useToast } from '../components/useToast';
 import { login } from '../services/authService';
@@ -17,6 +17,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
+  const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const errors = useMemo(() => {
@@ -35,13 +36,16 @@ export default function Login() {
     setTouched({ email: true, password: true });
     if (!canSubmit) return;
 
+    setFormError('');
     setSubmitting(true);
     try {
       const result = await login({ email, password });
-      showToast(result.localMode ? 'Logged in locally. Configure PostgreSQL for real API publishing.' : 'Welcome back.');
+      showToast('Welcome back.');
       navigate(result.user?.role === 'writer' ? '/writer' : '/dashboard', { replace: true });
     } catch (err) {
-      showToast(getApiErrorMessage(err, 'Login failed'), 'error');
+      const message = getApiErrorMessage(err, 'Account does not exist');
+      setFormError(message === 'Network Error' ? 'Login failed. Backend is not running or cannot reach PostgreSQL.' : message);
+      showToast(message, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -81,9 +85,9 @@ export default function Login() {
 
         <div className="bp-login-card">
           <div className="bp-login-card-header">
-            <p className="bp-eyebrow">Admin Access</p>
+            <p className="bp-eyebrow">Secure Access</p>
             <h2>Login</h2>
-            <p>Enter your credentials to open the BluePurple publishing console.</p>
+            <p>Enter your credentials to open your BluePurple publishing workspace.</p>
           </div>
 
           <form className="bp-login-form" onSubmit={handleSubmit} noValidate>
@@ -93,7 +97,10 @@ export default function Login() {
                 type="email"
                 placeholder="admin@example.com"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setFormError('');
+                  setEmail(event.target.value);
+                }}
                 onBlur={() => setTouched((current) => ({ ...current, email: true }))}
               />
               {touched.email && errors.email && <small>{errors.email}</small>}
@@ -105,7 +112,10 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setFormError('');
+                  setPassword(event.target.value);
+                }}
                 onBlur={() => setTouched((current) => ({ ...current, password: true }))}
               />
               <button
@@ -121,6 +131,12 @@ export default function Login() {
             <button className="bp-login-submit" type="submit" disabled={!canSubmit || submitting}>
               {submitting ? 'Signing in...' : 'Enter dashboard'}
             </button>
+
+            {formError && <div className="bp-form-error">{formError}</div>}
+
+            <p className="bp-auth-switch">
+              New writer? <Link to="/signup">Create an account</Link>
+            </p>
 
           </form>
         </div>

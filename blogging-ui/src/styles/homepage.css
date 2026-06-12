@@ -844,6 +844,29 @@
   opacity: 0.62;
 }
 
+.bp-auth-switch {
+  margin: 0;
+  color: var(--bp-muted);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.bp-auth-switch a {
+  color: #93c5fd;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.bp-form-error {
+  border: 1px solid rgba(251, 113, 133, 0.34);
+  border-radius: 16px;
+  background: rgba(244, 63, 94, 0.1);
+  color: #fecdd3;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
 .bp-demo-login {
   min-height: 58px;
   border: 1px solid rgba(167, 139, 250, 0.28);

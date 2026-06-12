@@ -3,39 +3,16 @@ import { clearToken, setToken } from '../utils/authStorage';
 
 export async function register(payload) {
   const { data } = await api.post('/auth/register', payload);
+  if (data.token) setToken(data.token);
+  if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
   return data;
 }
 
 export async function login(payload) {
-  try {
-    const { data } = await api.post('/auth/login', payload);
-    if (data.token) setToken(data.token);
-    if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
-    return data;
-  } catch {
-    const user = {
-      id: 'local-admin',
-      name: 'Local Publisher',
-      email: payload.email || 'admin@bluepurple.local',
-      role: payload.email?.includes('writer') ? 'writer' : 'admin',
-    };
-    setToken('local-admin-token');
-    localStorage.setItem('auth_user', JSON.stringify(user));
-    return { token: 'local-admin-token', user, localMode: true };
-  }
-}
-
-export function loginDemo() {
-  const user = {
-    id: 'demo-admin',
-    name: 'Demo Publisher',
-    email: 'demo@bluepurple.local',
-    role: 'admin',
-  };
-
-  setToken('demo-local-token');
-  localStorage.setItem('auth_user', JSON.stringify(user));
-  return { token: 'demo-local-token', user };
+  const { data } = await api.post('/auth/login', payload);
+  if (data.token) setToken(data.token);
+  if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
+  return data;
 }
 
 export function getCurrentUser() {

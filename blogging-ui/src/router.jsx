@@ -7,6 +7,7 @@ import ProtectedRoute from './routeGuards/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 
@@ -33,6 +34,7 @@ export default function AppRouter() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
+          <Route path="signup" element={<Signup />} />
 
           {/* Protected admin routes */}
           <Route

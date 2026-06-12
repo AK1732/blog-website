@@ -3,12 +3,19 @@ import bcrypt from 'bcryptjs';
 import { query } from '../config/database.js';
 import { generateToken } from '../utils/generateToken.js';
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
 
 export async function register(req, res) {
   const { name, email, password } = req.body || {};
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'name, email, and password are required' });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'valid email is required' });
   }
 
   if (password.length < 8) {
@@ -21,12 +28,15 @@ export async function register(req, res) {
 
   const passwordHash = await bcrypt.hash(String(password), 12);
   const insert = await query(
-    'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, role',
+    `INSERT INTO users (name, email, password, role)
+     VALUES ($1, $2, $3, 'writer')
+     RETURNING id, name, email, role`,
     [String(name).trim(), normalizedEmail, passwordHash]
   );
 
   const user = insert.rows[0];
-  return res.status(201).json({ user });
+  const token = generateToken(user);
+  return res.status(201).json({ token, user });
 
 }
 
@@ -37,16 +47,20 @@ export async function login(req, res) {
     return res.status(400).json({ message: 'email and password are required' });
   }
 
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'valid email is required' });
+  }
+
   const normalizedEmail = String(email).trim().toLowerCase();
   const { rows } = await query(
     'SELECT id, name, email, password, role FROM users WHERE email = $1',
     [normalizedEmail]
   );
   const user = rows[0];
-  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+  if (!user) return res.status(401).json({ message: 'Account does not exist' });
 
   const ok = await bcrypt.compare(String(password), user.password);
-  if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+  if (!ok) return res.status(401).json({ message: 'Incorrect password' });
 
   const token = generateToken(user);
   return res.json({

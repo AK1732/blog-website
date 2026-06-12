@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 
-import { logout } from '../services/authService';
+import { getCurrentUser, logout } from '../services/authService';
 import { getToken } from '../utils/authStorage';
 import '../styles/homepage.css';
 
@@ -15,6 +15,9 @@ function NavItem({ to, label }) {
 export default function Navbar() {
   const navigate = useNavigate();
   const signedIn = Boolean(getToken());
+  const user = getCurrentUser();
+  const dashboardPath = user?.role === 'writer' ? '/writer' : '/dashboard';
+  const createPath = user?.role === 'writer' ? '/writer/blogs/add' : '/dashboard/blogs/add';
 
   function handleLogout() {
     logout();
@@ -35,13 +38,13 @@ export default function Navbar() {
         <nav className="bp-nav-menu">
           <NavItem to="/" label="Home" />
           <NavItem to="/blogs" label="Articles" />
-          {signedIn && <NavItem to="/dashboard" label="Dashboard" />}
+          {signedIn && <NavItem to={dashboardPath} label="Dashboard" />}
         </nav>
 
         <div className="bp-nav-actions">
           {signedIn ? (
             <>
-              <NavLink className="bp-nav-cta" to="/dashboard/blogs/add">
+              <NavLink className="bp-nav-cta" to={createPath}>
                 New article
               </NavLink>
               <button className="bp-nav-ghost" type="button" onClick={handleLogout}>
@@ -49,9 +52,14 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <NavLink className="bp-nav-cta" to="/login">
-              Login
-            </NavLink>
+            <>
+              <NavLink className="bp-nav-ghost" to="/signup">
+                Signup
+              </NavLink>
+              <NavLink className="bp-nav-cta" to="/login">
+                Login
+              </NavLink>
+            </>
           )}
         </div>
       </div>
