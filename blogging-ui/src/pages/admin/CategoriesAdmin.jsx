@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
-import { useToast } from '../../components/ToastProvider';
+import { useToast } from '../../components/useToast';
 import {
   createCategory,
   deleteCategory,

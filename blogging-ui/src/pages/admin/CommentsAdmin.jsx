@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
-import { useToast } from '../../components/ToastProvider';
+import { useToast } from '../../components/useToast';
 import {
   approveComment,
   deleteComment,
@@ -18,7 +18,7 @@ export default function CommentsAdmin() {
   const [status, setStatus] = useState('pending');
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async function load() {
     setLoading(true);
     try {
       setComments(await getComments({ status: status || undefined }));
@@ -27,11 +27,11 @@ export default function CommentsAdmin() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [showToast, status]);
 
   useEffect(() => {
     load();
-  }, [status]);
+  }, [load]);
 
   async function mutate(action, id, message) {
     try {

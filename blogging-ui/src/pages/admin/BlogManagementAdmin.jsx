@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
-import { useToast } from '../../components/ToastProvider';
+import { useToast } from '../../components/useToast';
 import { deleteBlog, getBlogs, publishBlog } from '../../services/blogService';
 import { getApiErrorMessage } from '../../utils/apiError';
 import '../../styles/admin.css';
@@ -15,7 +15,7 @@ export default function BlogManagementAdmin() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async function load() {
     setLoading(true);
     try {
       setBlogs(await getBlogs({ q: q || undefined, status: status || undefined }));
@@ -24,11 +24,11 @@ export default function BlogManagementAdmin() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [q, showToast, status]);
 
   useEffect(() => {
     load();
-  }, [q, status]);
+  }, [load]);
 
   async function handlePublish(id) {
     try {

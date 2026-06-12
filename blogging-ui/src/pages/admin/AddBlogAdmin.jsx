@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
-import { useToast } from '../../components/ToastProvider';
+import { useToast } from '../../components/useToast';
 import { createBlog, getBlog, updateBlog } from '../../services/blogService';
 import { getCategories } from '../../services/categoryService';
 import { getApiErrorMessage } from '../../utils/apiError';

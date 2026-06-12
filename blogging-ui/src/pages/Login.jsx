@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/useToast';
 import { login } from '../services/authService';
 import { getApiErrorMessage } from '../utils/apiError';
 import '../styles/homepage.css';

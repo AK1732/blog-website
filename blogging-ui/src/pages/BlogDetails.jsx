@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import heroImage from '../assets/hero.png';
 import { getBlog, getBlogs } from '../services/blogService';
 import { addComment, getBlogComments } from '../services/commentService';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/useToast';
 import { getApiErrorMessage } from '../utils/apiError';
 
 function formatDate(value) {

@@ -12,7 +12,7 @@ export async function login(payload) {
     if (data.token) setToken(data.token);
     if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
     return data;
-  } catch (err) {
+  } catch {
     const user = {
       id: 'local-admin',
       name: 'Local Publisher',
