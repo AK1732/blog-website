@@ -30,4 +30,8 @@ export function validateServerEnv() {
       throw new Error(`Environment variable ${name} must be a positive integer`);
     }
   });
+
+  if (!process.env.MONGODB_URI) {
+    console.warn('MONGODB_URI is not set. MongoDB application logging will be skipped.');
+  }
 }

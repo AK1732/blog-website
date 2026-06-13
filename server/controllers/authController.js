@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 
 import { query } from '../config/database.js';
 import { generateToken } from '../utils/generateToken.js';
+import { loggerService } from '../services/loggerService.js';
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
@@ -36,6 +37,12 @@ export async function register(req, res) {
 
   const user = insert.rows[0];
   const token = generateToken(user);
+  await loggerService.logActivity({
+    userId: user.id,
+    action: 'USER_REGISTRATION',
+    details: { role: user.role },
+    ipAddress: req.ip,
+  });
   return res.status(201).json({ token, user });
 
 }
@@ -57,15 +64,51 @@ export async function login(req, res) {
     [normalizedEmail]
   );
   const user = rows[0];
-  if (!user) return res.status(401).json({ message: 'Account does not exist' });
+  if (!user) {
+    await loggerService.logLogin({
+      email: normalizedEmail,
+      status: 'FAILED_ACCOUNT_NOT_FOUND',
+      ipAddress: req.ip,
+    });
+    return res.status(401).json({ message: 'Account does not exist' });
+  }
 
   const ok = await bcrypt.compare(String(password), user.password);
-  if (!ok) return res.status(401).json({ message: 'Incorrect password' });
+  if (!ok) {
+    await loggerService.logLogin({
+      email: normalizedEmail,
+      status: 'FAILED_INCORRECT_PASSWORD',
+      ipAddress: req.ip,
+    });
+    return res.status(401).json({ message: 'Incorrect password' });
+  }
 
   const token = generateToken(user);
+  await loggerService.logLogin({
+    email: user.email,
+    status: 'SUCCESS',
+    ipAddress: req.ip,
+  });
+  await loggerService.logActivity({
+    userId: user.id,
+    action: 'USER_LOGIN',
+    details: {},
+    ipAddress: req.ip,
+  });
   return res.json({
     token,
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
   });
+}
+
+export async function logout(req, res) {
+  await loggerService.logActivity({
+    userId: req.user?.id || null,
+    action: 'USER_LOGOUT',
+    details: {},
+    ipAddress: req.ip,
+  });
+
+  return res.json({ message: 'Logged out' });
 }
 

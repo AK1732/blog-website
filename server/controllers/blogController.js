@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import { loggerService } from '../services/loggerService.js';
 
 const blogSelect = `
   SELECT
@@ -61,6 +62,17 @@ export async function createBlog(req, res) {
   );
 
   const { rows } = await query(`${blogSelect} WHERE b.id = $1`, [insert.rows[0].id]);
+  await loggerService.logBlog({
+    userId: authorId || null,
+    blogId: rows[0].id,
+    action: 'BLOG_CREATION',
+  });
+  await loggerService.logActivity({
+    userId: authorId || null,
+    action: 'BLOG_CREATION',
+    details: { blogId: rows[0].id, status: rows[0].status },
+    ipAddress: req.ip,
+  });
   return res.status(201).json({ blog: rows[0] });
 
 }
@@ -173,6 +185,17 @@ export async function updateBlog(req, res) {
   );
 
   const { rows } = await query(`${blogSelect} WHERE b.id = $1`, [id]);
+  await loggerService.logBlog({
+    userId: req.user?.id || null,
+    blogId: rows[0].id,
+    action: 'BLOG_UPDATE',
+  });
+  await loggerService.logActivity({
+    userId: req.user?.id || null,
+    action: 'BLOG_UPDATE',
+    details: { blogId: rows[0].id, status: rows[0].status, approvalStatus: rows[0].approval_status },
+    ipAddress: req.ip,
+  });
   return res.json({ blog: rows[0] });
 
 }
@@ -188,6 +211,17 @@ export async function deleteBlog(req, res) {
   }
 
   const del = await query('DELETE FROM blogs WHERE id = $1 RETURNING id', [id]);
+  await loggerService.logBlog({
+    userId: req.user?.id || null,
+    blogId: del.rows[0].id,
+    action: 'BLOG_DELETE',
+  });
+  await loggerService.logActivity({
+    userId: req.user?.id || null,
+    action: 'BLOG_DELETE',
+    details: { blogId: del.rows[0].id },
+    ipAddress: req.ip,
+  });
 
   return res.json({ message: 'Blog deleted' });
 
@@ -205,6 +239,17 @@ export async function publishBlog(req, res) {
   if (!result.rowCount) return res.status(404).json({ message: 'Blog not found' });
 
   const { rows } = await query(`${blogSelect} WHERE b.id = $1`, [id]);
+  await loggerService.logBlog({
+    userId: req.user?.id || null,
+    blogId: rows[0].id,
+    action: 'BLOG_PUBLISH',
+  });
+  await loggerService.logActivity({
+    userId: req.user?.id || null,
+    action: 'BLOG_PUBLISH',
+    details: { blogId: rows[0].id },
+    ipAddress: req.ip,
+  });
   return res.json({ blog: rows[0] });
 }
 

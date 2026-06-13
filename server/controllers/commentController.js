@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import { loggerService } from '../services/loggerService.js';
 
 export async function addComment(req, res) {
   const blogId = req.params.blogId || req.body?.blog_id || req.body?.blogId;
@@ -61,6 +62,12 @@ export async function approveComment(req, res) {
   const { id } = req.params;
   const result = await query("UPDATE comments SET status = 'approved' WHERE id = $1 RETURNING *", [id]);
   if (!result.rowCount) return res.status(404).json({ message: 'Comment not found' });
+  await loggerService.logActivity({
+    userId: req.user?.id || null,
+    action: 'COMMENT_APPROVAL',
+    details: { commentId: result.rows[0].id, blogId: result.rows[0].blog_id },
+    ipAddress: req.ip,
+  });
   return res.json({ comment: result.rows[0] });
 }
 
@@ -68,6 +75,12 @@ export async function rejectComment(req, res) {
   const { id } = req.params;
   const result = await query("UPDATE comments SET status = 'rejected' WHERE id = $1 RETURNING *", [id]);
   if (!result.rowCount) return res.status(404).json({ message: 'Comment not found' });
+  await loggerService.logActivity({
+    userId: req.user?.id || null,
+    action: 'COMMENT_REJECTION',
+    details: { commentId: result.rows[0].id, blogId: result.rows[0].blog_id },
+    ipAddress: req.ip,
+  });
   return res.json({ comment: result.rows[0] });
 }
 
