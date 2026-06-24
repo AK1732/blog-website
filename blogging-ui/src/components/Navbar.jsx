@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 import { getCurrentUser, logout } from '../services/authService';
 import { getToken } from '../utils/authStorage';
+import { getCreatePostPath, getDashboardPath } from '../utils/dashboardPath';
 import '../styles/homepage.css';
 
 function NavItem({ to, label }) {
@@ -16,8 +17,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const signedIn = Boolean(getToken());
   const user = getCurrentUser();
-  const dashboardPath = user?.role === 'writer' ? '/writer' : '/dashboard';
-  const createPath = user?.role === 'writer' ? '/writer/blogs/add' : '/dashboard/blogs/add';
+  const dashboardPath = getDashboardPath(user?.role);
+  const createPath = getCreatePostPath(user?.role);
 
   async function handleLogout() {
     await logout();

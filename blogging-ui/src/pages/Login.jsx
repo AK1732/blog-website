@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../components/useToast';
 import { login } from '../services/authService';
 import { getApiErrorMessage } from '../utils/apiError';
+import { getDashboardPath } from '../utils/dashboardPath';
 import '../styles/homepage.css';
 
 function isValidEmail(email) {
@@ -41,7 +42,7 @@ export default function Login() {
     try {
       const result = await login({ email, password });
       showToast('Welcome back.');
-      navigate(result.user?.role === 'writer' ? '/writer' : '/dashboard', { replace: true });
+      navigate(getDashboardPath(result.user?.role), { replace: true });
     } catch (err) {
       const message = getApiErrorMessage(err, 'Email does not exist');
       setFormError(message === 'Network Error' ? 'Login failed. Backend is not running or cannot reach PostgreSQL.' : message);
