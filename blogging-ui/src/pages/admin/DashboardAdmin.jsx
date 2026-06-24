@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 import Sidebar from '../../components/dashboard/Sidebar';
@@ -9,16 +10,24 @@ import '../../styles/admin.css';
 
 function MetricCard({ label, value, tone }) {
   return (
-    <div className="admin-metric-card">
+    <motion.div
+      className="admin-metric-card"
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.36, ease: 'easeOut' }}
+      whileHover={{ y: -7, scale: 1.025, rotateX: 2.5, rotateY: -1.5 }}
+    >
       <span className={tone} />
       <p>{label}</p>
       <strong>{value}</strong>
-    </div>
+    </motion.div>
   );
 }
 
 export default function DashboardAdmin() {
   const [stats, setStats] = useState(null);
+  const [charts, setCharts] = useState({ posts_per_month: [], user_registrations: [], most_viewed_posts: [] });
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +38,8 @@ export default function DashboardAdmin() {
           getDashboardStats().catch(() => null),
           getBlogs({ limit: 5 }),
         ]);
-        setStats(nextStats);
+        setStats(nextStats?.stats || nextStats);
+        setCharts(nextStats?.charts || { posts_per_month: [], user_registrations: [], most_viewed_posts: [] });
         setBlogs(nextBlogs);
       } finally {
         setLoading(false);
@@ -48,7 +58,12 @@ export default function DashboardAdmin() {
       <div className="admin-main">
         <Topbar />
         <main className="admin-content">
-          <section className="admin-page-heading">
+          <motion.section
+            className="admin-page-heading admin-glass-panel"
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          >
             <div>
               <p>Overview</p>
               <h1>Dashboard</h1>
@@ -57,7 +72,7 @@ export default function DashboardAdmin() {
             <Link className="admin-heading-link" to="/dashboard/blogs/add">
               New article
             </Link>
-          </section>
+          </motion.section>
 
           <section className="admin-metric-grid">
             <MetricCard label="Total Blogs" value={loading ? '-' : totalBlogs} tone="tone-blue" />
@@ -65,9 +80,56 @@ export default function DashboardAdmin() {
             <MetricCard label="Pending Blogs" value={loading ? '-' : stats?.pending_blogs ?? draftBlogs} tone="tone-purple" />
             <MetricCard label="Writers" value={loading ? '-' : stats?.total_writers ?? 0} tone="tone-slate" />
             <MetricCard label="Comments" value={loading ? '-' : stats?.total_comments ?? 0} tone="tone-blue" />
+            <MetricCard label="Users" value={loading ? '-' : stats?.total_users ?? 0} tone="tone-green" />
+            <MetricCard label="Categories" value={loading ? '-' : stats?.total_categories ?? 0} tone="tone-purple" />
+            <MetricCard label="Tags" value={loading ? '-' : stats?.total_tags ?? 0} tone="tone-slate" />
           </section>
 
-          <section className="admin-table-card">
+          <section className="admin-analytics-grid">
+            <div className="admin-table-card">
+              <div className="admin-table-header"><h2>Posts per month</h2></div>
+              <div className="admin-mini-chart">
+                {charts.posts_per_month.map((item) => (
+                  <div key={item.month}>
+                    <span>{item.month}</span>
+                    <strong style={{ width: `${Math.max(item.count * 18, 14)}px` }} />
+                    <em>{item.count}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="admin-table-card">
+              <div className="admin-table-header"><h2>User registrations</h2></div>
+              <div className="admin-mini-chart">
+                {charts.user_registrations.map((item) => (
+                  <div key={item.month}>
+                    <span>{item.month}</span>
+                    <strong style={{ width: `${Math.max(item.count * 18, 14)}px` }} />
+                    <em>{item.count}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="admin-table-card">
+              <div className="admin-table-header"><h2>Most viewed posts</h2></div>
+              <div className="admin-post-list">
+                {charts.most_viewed_posts.map((post) => (
+                  <article key={post.id}>
+                    <div><h3>{post.title}</h3></div>
+                    <span>{post.view_count || 0} views</span>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <motion.section
+            className="admin-table-card admin-glass-panel"
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.42, ease: 'easeOut' }}
+          >
             <div className="admin-table-header">
               <div>
                 <h2>Recent Posts</h2>
@@ -92,7 +154,7 @@ export default function DashboardAdmin() {
                 </div>
               )}
             </div>
-          </section>
+          </motion.section>
         </main>
       </div>
     </div>

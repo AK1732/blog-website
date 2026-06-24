@@ -15,6 +15,21 @@ export async function login(payload) {
   return data;
 }
 
+export async function verifyEmail(token) {
+  const { data } = await api.get(`/auth/verify-email/${token}`);
+  return data;
+}
+
+export async function forgotPassword(email) {
+  const { data } = await api.post('/auth/forgot-password', { email });
+  return data;
+}
+
+export async function resetPassword(token, password) {
+  const { data } = await api.post('/auth/reset-password', { token, password });
+  return data;
+}
+
 export function getCurrentUser() {
   try {
     return JSON.parse(localStorage.getItem('auth_user') || 'null');
@@ -23,7 +38,12 @@ export function getCurrentUser() {
   }
 }
 
-export function logout() {
+export async function logout() {
+  try {
+    await api.post('/auth/logout');
+  } catch {
+    // The client session should still be cleared if the server is unreachable.
+  }
   clearToken();
   localStorage.removeItem('auth_user');
 }

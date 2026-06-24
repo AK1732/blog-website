@@ -2,6 +2,7 @@ import { getMongoLogDb, isMongoLoggingConfigured } from '../config/mongo.js';
 
 const COLLECTIONS = {
   activity: 'activity_logs',
+  error: 'error_logs',
   login: 'login_logs',
   blog: 'blog_logs',
 };
@@ -17,7 +18,9 @@ function serializeError(error) {
     message: error.message,
     name: error.name,
     code: error.code,
+    errorType: error.errorType,
     statusCode: error.statusCode,
+    field: error.field,
     stack: process.env.NODE_ENV === 'production' ? undefined : error.stack,
   };
 }
@@ -63,17 +66,27 @@ export async function logBlog({ userId = null, blogId, action, timestamp } = {})
   });
 }
 
-export async function logApiError({ req, error } = {}) {
-  return logActivity({
+export async function logApiError({ req, error, normalized } = {}) {
+  const document = {
     userId: req?.user?.id || null,
     action: 'API_ERROR',
     details: {
       method: req?.method,
       path: req?.originalUrl,
+      statusCode: normalized?.statusCode || error?.statusCode || 500,
+      errorType: normalized?.errorType || error?.errorType,
+      code: normalized?.code || error?.code,
+      message: normalized?.message || error?.message,
       error: serializeError(error),
     },
     ipAddress: req?.ip || null,
-  });
+    timestamp: getTimestamp(),
+  };
+
+  await Promise.all([
+    insertLog(COLLECTIONS.activity, document),
+    insertLog(COLLECTIONS.error, document),
+  ]);
 }
 
 export const loggerService = {

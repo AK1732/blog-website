@@ -2,7 +2,7 @@ import api from './api';
 
 export async function getDashboardStats() {
   const { data } = await api.get('/dashboard/stats');
-  return data.stats;
+  return data;
 }
 
 export async function getWriterDashboardStats() {

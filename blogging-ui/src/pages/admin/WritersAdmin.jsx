@@ -7,7 +7,16 @@ import { createUser, deleteUser, getUsers, updateUser } from '../../services/use
 import { getApiErrorMessage } from '../../utils/apiError';
 import '../../styles/admin.css';
 
-const emptyForm = { name: '', email: '', password: '', role: 'writer' };
+const emptyForm = { name: '', email: '', password: '', role: 'writer', bio: '', profile_image: '' };
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function WritersAdmin() {
   const { showToast } = useToast();
@@ -35,6 +44,17 @@ export default function WritersAdmin() {
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Failed to save writer'), 'error');
     }
+  }
+
+  async function handleImageFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Choose an image file.', 'error');
+      return;
+    }
+    const dataUrl = await fileToDataUrl(file);
+    setForm((current) => ({ ...current, profile_image: dataUrl }));
   }
 
   async function handleDelete(user) {
@@ -66,6 +86,9 @@ export default function WritersAdmin() {
             <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Writer name" />
             <input value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
             <input value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} placeholder={editing ? 'New password optional' : 'Password'} type="password" />
+            <input value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} placeholder="Writer bio" />
+            <input value={form.profile_image} onChange={(event) => setForm((current) => ({ ...current, profile_image: event.target.value }))} placeholder="Profile image URL" />
+            <input type="file" accept="image/*" onChange={handleImageFile} />
             <button>{editing ? 'Update Writer' : 'Create Writer'}</button>
           </form>
 
@@ -75,7 +98,8 @@ export default function WritersAdmin() {
                 <article key={user.id}>
                   <div>
                     <h3>{user.name}</h3>
-                    <p>{user.email} / {user.role}</p>
+                    <p>{user.email} / {user.role} / {user.published_blogs || 0} published of {user.total_blogs || 0}</p>
+                    {user.bio && <p>{user.bio}</p>}
                   </div>
                   <span>{user.role}</span>
                   <div className="admin-row-actions">
@@ -83,7 +107,7 @@ export default function WritersAdmin() {
                       type="button"
                       onClick={() => {
                         setEditing(user);
-                        setForm({ name: user.name, email: user.email, password: '', role: user.role });
+                        setForm({ name: user.name, email: user.email, password: '', role: user.role, bio: user.bio || '', profile_image: user.profile_image || '' });
                       }}
                     >
                       Edit

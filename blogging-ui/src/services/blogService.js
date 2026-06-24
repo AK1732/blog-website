@@ -1,17 +1,16 @@
 import api from './api';
 
-const LOCAL_BLOGS_KEY = 'bluepurple_local_blogs';
+const LEGACY_LOCAL_BLOGS_KEY = 'bluepurple_local_blogs';
+const LOCAL_BLOGS_KEY = 'insighthub_local_blogs';
 
 function readLocalBlogs() {
   try {
-    return JSON.parse(localStorage.getItem(LOCAL_BLOGS_KEY) || '[]');
+    const current = localStorage.getItem(LOCAL_BLOGS_KEY);
+    const legacy = localStorage.getItem(LEGACY_LOCAL_BLOGS_KEY);
+    return JSON.parse(current || legacy || '[]');
   } catch {
     return [];
   }
-}
-
-function writeLocalBlogs(blogs) {
-  localStorage.setItem(LOCAL_BLOGS_KEY, JSON.stringify(blogs));
 }
 
 export async function getBlogs(params = {}) {
@@ -25,26 +24,13 @@ export async function getBlogs(params = {}) {
 }
 
 export async function getBlog(id) {
-  const { data } = await api.get(`/blogs/${id}`);
+  const { data } = await api.get(`/posts/${id}`);
   return data.blog;
 }
 
 export async function createBlog(payload) {
-  try {
-    const { data } = await api.post('/blogs', payload);
-    return data.blog;
-  } catch {
-    const localBlog = {
-      id: crypto.randomUUID(),
-      ...payload,
-      category_name: payload.category_id || 'General',
-      author_name: 'Local Publisher',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    writeLocalBlogs([localBlog, ...readLocalBlogs()]);
-    return localBlog;
-  }
+  const { data } = await api.post('/blogs', payload);
+  return data.blog;
 }
 
 export async function updateBlog(id, payload) {
@@ -60,6 +46,16 @@ export async function deleteBlog(id) {
 export async function publishBlog(id) {
   const { data } = await api.patch(`/blogs/${id}/publish`);
   return data.blog;
+}
+
+export async function getBlogsResponse(params = {}) {
+  const { data } = await api.get('/blogs', { params });
+  return data;
+}
+
+export async function getFeaturedBlogs(params = {}) {
+  const { data } = await api.get('/blogs/featured', { params });
+  return data.blogs || [];
 }
 
 export async function unpublishBlog(id) {
@@ -79,5 +75,10 @@ export async function approveBlog(id) {
 
 export async function rejectBlog(id) {
   const { data } = await api.patch(`/blogs/${id}/reject`);
+  return data.blog;
+}
+
+export async function setFeaturedBlog(id, featured) {
+  const { data } = await api.patch(`/blogs/${id}/featured`, { featured });
   return data.blog;
 }

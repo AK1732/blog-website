@@ -30,7 +30,7 @@ export default function SettingsAdmin() {
                 </label>
                 <label className="admin-field">
                   <span>Email</span>
-                  <input defaultValue={user?.email || 'admin@bluepurple.local'} />
+                  <input defaultValue={user?.email || 'admin@insighthub.local'} />
                 </label>
               </div>
               <label className="admin-field">
@@ -47,7 +47,7 @@ export default function SettingsAdmin() {
 
             <aside className="admin-publish-card">
               <div className="admin-status-pill">Appearance</div>
-              <h2>BluePurple Glass</h2>
+              <h2>InsightHub Glass</h2>
               <p>Dark premium interface with blue and purple accents for publishing workflows.</p>
               <div className="admin-theme-swatch" />
             </aside>

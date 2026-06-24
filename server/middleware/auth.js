@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
+import { authError, permissionError, AppError, ERROR_TYPES } from '../utils/appError.js';
 
 function verifyToken(token) {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
-    const error = new Error('Server misconfigured');
-    error.statusCode = 500;
+    const error = new AppError('Server misconfigured', { errorType: ERROR_TYPES.SERVER_ERROR });
     throw error;
   }
 
@@ -14,24 +14,25 @@ function verifyToken(token) {
 export function authenticateUser(req, res, next) {
   try {
     const header = req.headers.authorization || '';
-    const [, token] = header.split(' ');
+    const [scheme, token] = header.split(' ');
 
-    if (!token) {
-      return res.status(401).json({ message: 'Missing token' });
+    if (scheme?.toLowerCase() !== 'bearer' || !token) {
+      return next(authError('Please login to continue'));
     }
 
     req.user = verifyToken(token);
     return next();
   } catch (err) {
-    return res.status(err.statusCode || 401).json({ message: err.statusCode === 500 ? err.message : 'Invalid or expired token' });
+    if (err.statusCode === 500) return next(err);
+    return next(authError('Invalid session. Please login again'));
   }
 }
 
 export function optionalAuth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
-    const [, token] = header.split(' ');
-    if (token) req.user = verifyToken(token);
+    const [scheme, token] = header.split(' ');
+    if (scheme?.toLowerCase() === 'bearer' && token) req.user = verifyToken(token);
   } catch {
     req.user = null;
   }
@@ -40,14 +41,14 @@ export function optionalAuth(req, res, next) {
 
 export function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
+    return next(permissionError());
   }
   return next();
 }
 
 export function requireWriter(req, res, next) {
   if (!['writer', 'admin'].includes(req.user?.role)) {
-    return res.status(403).json({ message: 'Writer access required' });
+    return next(permissionError());
   }
   return next();
 }

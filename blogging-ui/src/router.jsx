@@ -8,6 +8,9 @@ import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 
@@ -35,6 +38,9 @@ export default function AppRouter() {
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
+          <Route path="verify-email/:token" element={<VerifyEmail />} />
 
           {/* Protected admin routes */}
           <Route
@@ -166,6 +172,7 @@ export default function AppRouter() {
           {/* Public blog routes (already scaffolded) */}
           <Route path="blogs" element={<Blogs />} />
           <Route path="blogs/:id" element={<BlogDetails />} />
+          <Route path="blog/:id" element={<BlogDetails />} />
 
 
           <Route path="404" element={<NotFound />} />

@@ -20,6 +20,26 @@ services:
     networks:
       - blogging-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: blogging-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - blogging-network
+
+  mongodb:
+    image: mongo:7
+    container_name: blogging-mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - blogging-network
+
   backend:
     build:
       context: ./server
@@ -37,6 +57,11 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-blogging_website}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-1000}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_LOG_DB_NAME: ${MONGODB_LOG_DB_NAME:-blogging_logs}
+      MONGODB_SERVER_SELECTION_TIMEOUT_MS: ${MONGODB_SERVER_SELECTION_TIMEOUT_MS:-5000}
     ports:
       - "${PORT:-5000}:5000"
     depends_on:
@@ -69,6 +94,7 @@ services:
 
 volumes:
   postgres_data:
+  mongo_data:
 
 networks:
   blogging-network:

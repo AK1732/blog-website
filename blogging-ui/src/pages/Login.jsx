@@ -43,7 +43,7 @@ export default function Login() {
       showToast('Welcome back.');
       navigate(result.user?.role === 'writer' ? '/writer' : '/dashboard', { replace: true });
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Account does not exist');
+      const message = getApiErrorMessage(err, 'Email does not exist');
       setFormError(message === 'Network Error' ? 'Login failed. Backend is not running or cannot reach PostgreSQL.' : message);
       showToast(message, 'error');
     } finally {
@@ -59,7 +59,7 @@ export default function Login() {
             <span />
             <span />
             <span />
-            <strong>BP</strong>
+            <strong>IH</strong>
           </div>
           <p className="bp-eyebrow">Command Prism</p>
           <h1>One secure gateway for your publishing desk.</h1>
@@ -87,7 +87,7 @@ export default function Login() {
           <div className="bp-login-card-header">
             <p className="bp-eyebrow">Secure Access</p>
             <h2>Login</h2>
-            <p>Enter your credentials to open your BluePurple publishing workspace.</p>
+            <p>Enter your credentials to open your InsightHub publishing workspace.</p>
           </div>
 
           <form className="bp-login-form" onSubmit={handleSubmit} noValidate>
@@ -136,6 +136,9 @@ export default function Login() {
 
             <p className="bp-auth-switch">
               New writer? <Link to="/signup">Create an account</Link>
+            </p>
+            <p className="bp-auth-switch">
+              Forgot password? <Link to="/forgot-password">Reset it</Link>
             </p>
 
           </form>

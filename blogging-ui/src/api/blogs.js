@@ -6,7 +6,7 @@ export async function fetchBlogs({ status, q } = {}) {
 }
 
 export async function fetchBlog(id) {
-  const res = await apiClient.get(`/blogs/${id}`);
+  const res = await apiClient.get(`/posts/${id}`);
   return res.data; // { blog }
 }
 

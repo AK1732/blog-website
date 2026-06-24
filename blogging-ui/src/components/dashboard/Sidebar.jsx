@@ -15,11 +15,11 @@ const items = [
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
-  let email = 'demo@bluepurple.local';
+  let email = 'demo@insighthub.local';
   try {
     email = JSON.parse(localStorage.getItem('auth_user') || '{}')?.email || email;
   } catch {
-    email = 'demo@bluepurple.local';
+    email = 'demo@insighthub.local';
   }
 
   return (
@@ -37,9 +37,9 @@ export default function Sidebar() {
 
       <aside className={`admin-sidebar ${open ? 'is-open' : ''}`}>
         <div className="admin-brand">
-          <span>BP</span>
+          <span>IH</span>
           <div>
-            <strong>BluePurple</strong>
+            <strong>InsightHub</strong>
             <small>Admin Console</small>
           </div>
         </div>

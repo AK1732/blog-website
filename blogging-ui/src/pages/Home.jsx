@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-import { getBlogs } from '../services/blogService';
+import { getBlogs, getFeaturedBlogs } from '../services/blogService';
 import { getCategories } from '../services/categoryService';
+import { getBlogPublicPath } from '../utils/blogUrls';
 import '../styles/homepage.css';
+
+const HeroScene = lazy(() => import('../components/HeroScene'));
+const MotionLink = motion(Link);
 
 const fallbackCategories = [
   { id: 'strategy', name: 'Strategy' },
@@ -23,7 +28,7 @@ const fallbackBlogs = [
     image: '',
     category_id: 'strategy',
     category_name: 'Strategy',
-    author_name: 'BluePurple Studio',
+    author_name: 'InsightHub Studio',
     created_at: '2026-06-02T10:00:00.000Z',
   },
   {
@@ -67,7 +72,7 @@ const fallbackBlogs = [
     image: '',
     category_id: 'growth',
     category_name: 'Growth',
-    author_name: 'BluePurple Studio',
+    author_name: 'InsightHub Studio',
     created_at: '2026-05-12T10:00:00.000Z',
   },
   {
@@ -106,7 +111,15 @@ function SectionHeader({ eyebrow, title, copy, action }) {
 
 function ArticleCard({ blog, featured = false }) {
   return (
-    <Link to={`/blogs/${blog.id}`} className={`bp-card bp-article-card ${featured ? 'bp-article-card-featured' : ''}`}>
+    <MotionLink
+      to={getBlogPublicPath(blog)}
+      className={`bp-card bp-article-card ${featured ? 'bp-article-card-featured' : ''}`}
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.18 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+      whileHover={{ y: -8, rotateX: 3.5, rotateY: -3, scale: 1.015 }}
+    >
       <div className="bp-card-media">
         {blog.image ? (
           <img src={blog.image} alt="" />
@@ -114,7 +127,7 @@ function ArticleCard({ blog, featured = false }) {
           <div className="bp-generated-cover" aria-hidden="true">
             <span />
             <span />
-            <strong>{(blog.category_name || 'BP').slice(0, 2).toUpperCase()}</strong>
+            <strong>{(blog.category_name || 'IH').slice(0, 2).toUpperCase()}</strong>
           </div>
         )}
         <span>{blog.category_name || 'Editorial'}</span>
@@ -122,24 +135,16 @@ function ArticleCard({ blog, featured = false }) {
       <div className="bp-card-body">
         <div className="bp-meta">
           <span>{formatDate(blog.created_at)}</span>
-          <span>{blog.author_name || 'BluePurple Team'}</span>
+          <span>{blog.author_name || 'InsightHub Team'}</span>
         </div>
         <h3>{blog.title}</h3>
-        <p>{blog.content}</p>
+        <p>{String(blog.content || '').replace(/<[^>]*>/g, '')}</p>
         <div className="bp-read-more">
           Read article
           <span aria-hidden="true">{'->'}</span>
         </div>
       </div>
-    </Link>
-  );
-}
-
-function CategoryPill({ category, active, onClick }) {
-  return (
-    <button className={`bp-category-pill ${active ? 'is-active' : ''}`} type="button" onClick={onClick}>
-      {category.name}
-    </button>
+    </MotionLink>
   );
 }
 
@@ -147,20 +152,24 @@ export default function Home() {
   const [blogs, setBlogs] = useState(fallbackBlogs);
   const [categories, setCategories] = useState(fallbackCategories);
   const [query, setQuery] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [categoryId] = useState('');
   const [isFallback, setIsFallback] = useState(true);
   const [newsletterEmail, setNewsletterEmail] = useState('');
 
   useEffect(() => {
     async function load() {
       try {
-        const [blogRows, categoryRows] = await Promise.all([
+        const [featuredRows, blogRows, categoryRows] = await Promise.all([
+          getFeaturedBlogs({ limit: 2 }).catch(() => []),
           getBlogs({ status: 'published', limit: 9 }),
           getCategories(),
         ]);
 
-        if (blogRows.length) {
-          setBlogs(blogRows);
+        const mergedBlogs = featuredRows.length
+          ? [...featuredRows, ...blogRows.filter((blog) => !featuredRows.some((featuredBlog) => featuredBlog.id === blog.id))]
+          : blogRows;
+        if (mergedBlogs.length) {
+          setBlogs(mergedBlogs);
           setIsFallback(false);
         }
         if (categoryRows.length) setCategories(categoryRows);
@@ -194,14 +203,19 @@ export default function Home() {
   return (
     <div className="bp-home">
       <section className="bp-hero">
-        <div className="bp-hero-copy">
+        <motion.div
+          className="bp-hero-copy"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.58, ease: 'easeOut' }}
+        >
           <div className="bp-hero-badge">
             <span />
             Publishing workspace for modern teams
           </div>
           <h1>Turn ideas into polished articles, faster.</h1>
           <p>
-            BluePurple Blog combines a premium reading experience with an admin workflow for publishing,
+            InsightHub combines a premium reading experience with an admin workflow for publishing,
             categorizing, and moderating content at startup speed.
           </p>
           <div className="bp-hero-actions">
@@ -212,9 +226,21 @@ export default function Home() {
               Open dashboard
             </Link>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bp-hero-panel" aria-label="Publishing overview">
+        <motion.div
+          className="bp-hero-panel bp-glass-panel"
+          aria-label="Publishing overview"
+          initial={{ opacity: 0, y: 28, rotateX: 4 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0 }}
+          transition={{ duration: 0.7, delay: 0.08, ease: 'easeOut' }}
+          whileHover={{ y: -6, rotateX: 2, rotateY: -2 }}
+        >
+          <div className="bp-hero-scene" aria-hidden="true">
+            <Suspense fallback={<div className="bp-scene-fallback" />}>
+              <HeroScene />
+            </Suspense>
+          </div>
           <div className="bp-panel-topline">
             <span>Editorial OS</span>
             <span>{isFallback ? 'Demo content' : 'Live content'}</span>
@@ -237,27 +263,31 @@ export default function Home() {
               <span>Admin auth</span>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      <main className="bp-main">
-        <section className="bp-toolbar" aria-label="Search and filters">
+      <motion.main
+        className="bp-main"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.45, delay: 0.16 }}
+      >
+        <section className="bp-toolbar" aria-label="Search articles">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search articles, authors, or topics"
           />
-          <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <Link className="bp-button bp-button-secondary" to="/blogs">Open articles</Link>
         </section>
 
-        <section className="bp-section">
+        <motion.section
+          className="bp-section"
+          initial={{ opacity: 0, y: 26 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.48, ease: 'easeOut' }}
+        >
           <SectionHeader
             eyebrow="Featured Articles"
             title="Handpicked writing with signal."
@@ -269,28 +299,15 @@ export default function Home() {
               <ArticleCard key={blog.id} blog={blog} featured />
             ))}
           </div>
-        </section>
+        </motion.section>
 
-        <section className="bp-section">
-          <SectionHeader
-            eyebrow="Categories"
-            title="Browse by operating mode."
-            copy="Jump into focused collections across strategy, product, design, engineering, and growth."
-          />
-          <div className="bp-category-list">
-            <CategoryPill category={{ id: '', name: 'All' }} active={!categoryId} onClick={() => setCategoryId('')} />
-            {categories.map((category) => (
-              <CategoryPill
-                key={category.id}
-                category={category}
-                active={String(category.id) === String(categoryId)}
-                onClick={() => setCategoryId(category.id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="bp-section">
+        <motion.section
+          className="bp-section"
+          initial={{ opacity: 0, y: 26 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.18 }}
+          transition={{ duration: 0.48, ease: 'easeOut' }}
+        >
           <SectionHeader
             eyebrow="Latest Articles"
             title="Fresh notes from the publishing desk."
@@ -306,9 +323,15 @@ export default function Home() {
               No articles match this search yet. Try a different topic or clear the category filter.
             </div>
           )}
-        </section>
+        </motion.section>
 
-        <section className="bp-newsletter">
+        <motion.section
+          className="bp-newsletter bp-glass-panel"
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
           <div>
             <p className="bp-eyebrow">Newsletter</p>
             <h2>Get the best publishing ideas in your inbox.</h2>
@@ -327,8 +350,8 @@ export default function Home() {
             />
             <button type="submit">Subscribe</button>
           </form>
-        </section>
-      </main>
+        </motion.section>
+      </motion.main>
     </div>
   );
 }

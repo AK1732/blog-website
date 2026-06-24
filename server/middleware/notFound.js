@@ -1,6 +1,6 @@
+import { notFoundError } from '../utils/appError.js';
+
 export function notFound(req, res, next) {
-  res.status(404).json({
-    message: 'Route not found',
-  });
+  next(notFoundError('Route not found'));
 }
 

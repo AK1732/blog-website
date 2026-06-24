@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import Sidebar from '../../components/dashboard/Sidebar';
@@ -6,10 +6,80 @@ import Topbar from '../../components/dashboard/Topbar';
 import WriterSidebar from '../../components/dashboard/WriterSidebar';
 import { useToast } from '../../components/useToast';
 import { createBlog, getBlog, submitBlog, updateBlog } from '../../services/blogService';
-import { getCurrentUser } from '../../services/authService';
+import { getCurrentUser, logout } from '../../services/authService';
+import { autosaveDraft } from '../../services/draftService';
 import { getCategories } from '../../services/categoryService';
-import { getApiErrorMessage } from '../../utils/apiError';
+import { getTags } from '../../services/tagService';
+import { getApiErrorMessage, getApiFieldError } from '../../utils/apiError';
 import '../../styles/admin.css';
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function RichTextEditor({ value, onChange, onBlur }) {
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && editor.innerHTML !== value) {
+      editor.innerHTML = value || '';
+    }
+  }, [value]);
+
+  function run(command, input = null) {
+    document.execCommand(command, false, input);
+    const editor = editorRef.current;
+    if (editor) onChange(editor.innerHTML);
+  }
+
+  function addLink() {
+    const url = window.prompt('Enter link URL');
+    if (url) run('createLink', url);
+  }
+
+  function addImage() {
+    const url = window.prompt('Enter image URL');
+    if (url) run('insertImage', url);
+  }
+
+  return (
+    <div className="admin-rich-editor">
+      <div className="admin-editor-toolbar">
+        <button type="button" onClick={() => run('bold')}>B</button>
+        <button type="button" onClick={() => run('italic')}>I</button>
+        <button type="button" onClick={() => run('formatBlock', 'H2')}>H2</button>
+        <button type="button" onClick={() => run('formatBlock', 'H3')}>H3</button>
+        <button type="button" onClick={() => run('insertUnorderedList')}>List</button>
+        <button type="button" onClick={() => run('insertOrderedList')}>1.</button>
+        <button type="button" onClick={addLink}>Link</button>
+        <button type="button" onClick={() => run('formatBlock', 'PRE')}>Code</button>
+        <button type="button" onClick={addImage}>Image</button>
+      </div>
+      <div
+        ref={editorRef}
+        className="admin-rich-input"
+        contentEditable
+        data-rich-editor="blog-content"
+        role="textbox"
+        tabIndex={0}
+        aria-multiline="true"
+        suppressContentEditableWarning
+        onInput={(event) => onChange(event.currentTarget.innerHTML)}
+        onBlur={onBlur}
+      />
+    </div>
+  );
+}
+
+function plainText(value) {
+  return String(value || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
 
 export default function AddBlogAdmin() {
   const { id } = useParams();
@@ -19,21 +89,25 @@ export default function AddBlogAdmin() {
   const currentUser = getCurrentUser();
   const isWriter = currentUser?.role === 'writer';
   const [categories, setCategories] = useState([]);
+  const [tags, setTags] = useState([]);
   const [form, setForm] = useState({
     title: '',
     content: '',
     image: '',
     category_id: '',
+    tag_ids: [],
     status: 'draft',
   });
   const [touched, setTouched] = useState({});
+  const [serverErrors, setServerErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
-        const categoryRows = await getCategories();
+        const [categoryRows, tagRows] = await Promise.all([getCategories(), getTags().catch(() => [])]);
         setCategories(categoryRows);
+        setTags(tagRows);
         if (editing) {
           const blog = await getBlog(id);
           setForm({
@@ -41,6 +115,7 @@ export default function AddBlogAdmin() {
             content: blog.content || '',
             image: blog.image || '',
             category_id: blog.category_id || '',
+            tag_ids: (blog.tags || []).map((tag) => tag.id),
             status: blog.status || 'draft',
           });
         }
@@ -56,20 +131,77 @@ export default function AddBlogAdmin() {
     load();
   }, [editing, id]);
 
+  useEffect(() => {
+    if (!currentUser || (!form.title.trim() && !form.content.trim())) return undefined;
+    const timer = setTimeout(() => {
+      autosaveDraft(id || 'new', form).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [currentUser, form, id]);
+
   const errors = useMemo(() => {
     const next = {};
-    if (!form.title.trim()) next.title = 'Title is required.';
-    if (!form.content.trim()) next.content = 'Content is required.';
-    return next;
-  }, [form]);
+    if (!form.title.trim()) next.title = 'Blog title is required';
+    if (!plainText(form.content)) next.content = 'Blog content is required';
+    return { ...next, ...serverErrors };
+  }, [form, serverErrors]);
 
   function updateField(field, value) {
+    setServerErrors((current) => ({ ...current, [field]: '' }));
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function categoryIsRequired(action) {
+    return action === 'published' || action === 'submit';
+  }
+
+  function hasSelectedValidCategory() {
+    return categories.some((category) => String(category.id) === String(form.category_id));
+  }
+
+  function toggleTag(tagId) {
+    setForm((current) => {
+      const exists = current.tag_ids.includes(tagId);
+      return {
+        ...current,
+        tag_ids: exists
+          ? current.tag_ids.filter((idValue) => idValue !== tagId)
+          : [...current.tag_ids, tagId],
+      };
+    });
+  }
+
+  async function handleImageFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Choose an image file.', 'error');
+      return;
+    }
+    const dataUrl = await fileToDataUrl(file);
+    updateField('image', dataUrl);
+  }
+
   async function handleSubmit(action) {
-    setTouched({ title: true, content: true });
-    if (Object.keys(errors).length) return;
+    if (!currentUser) {
+      showToast('Please login to continue', 'error');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    const nextTouched = { title: true, content: true, category_id: categoryIsRequired(action) };
+    const clientErrors = {};
+    if (!form.title.trim()) clientErrors.title = 'Blog title is required';
+    if (!plainText(form.content)) clientErrors.content = 'Blog content is required';
+    if (categoryIsRequired(action) && !form.category_id) clientErrors.category_id = 'Blog category is required';
+    else if (form.category_id && !hasSelectedValidCategory()) {
+      clientErrors.category_id = 'Please select a valid blog category';
+    }
+
+    setTouched(nextTouched);
+    setServerErrors(clientErrors);
+    if (Object.keys(clientErrors).length) return;
+
     setSaving(true);
     try {
       const status = isWriter ? 'draft' : action;
@@ -79,7 +211,17 @@ export default function AddBlogAdmin() {
       showToast(action === 'submit' ? 'Blog submitted for review.' : status === 'published' ? 'Blog published.' : 'Draft saved.');
       navigate(isWriter ? '/writer/blogs' : '/dashboard/blogs');
     } catch (err) {
-      showToast(getApiErrorMessage(err, 'Could not reach API. Your draft UI is ready, but database auth may need setup.'), 'error');
+      const fieldError = getApiFieldError(err);
+      const message = getApiErrorMessage(err, 'Could not reach API. Your draft was not saved.');
+      if (fieldError?.field) {
+        setServerErrors((current) => ({ ...current, [fieldError.field]: fieldError.message }));
+        setTouched((current) => ({ ...current, [fieldError.field]: true }));
+      }
+      if (err?.response?.data?.errorType === 'AUTH_ERROR') {
+        await logout();
+        navigate('/login', { replace: true });
+      }
+      showToast(message, 'error');
     } finally {
       setSaving(false);
     }
@@ -126,25 +268,45 @@ export default function AddBlogAdmin() {
                       </option>
                     ))}
                   </select>
+                  {touched.category_id && errors.category_id && <small>{errors.category_id}</small>}
                 </label>
 
                 <label className="admin-field">
-                  <span>Cover Image URL</span>
-                  <input
-                    value={form.image}
-                    onChange={(event) => updateField('image', event.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                  />
+                  <span>Cover Image</span>
+                  <div className="admin-upload-field">
+                    <input
+                      value={form.image}
+                      onChange={(event) => updateField('image', event.target.value)}
+                      placeholder="Paste image URL"
+                    />
+                    <input type="file" accept="image/*" onChange={handleImageFile} />
+                  </div>
                 </label>
               </div>
 
               <label className="admin-field">
+                <span>Tags</span>
+                <div className="admin-tag-picker">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      className={form.tag_ids.includes(tag.id) ? 'is-active' : ''}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                  {!tags.length && <small>No tags yet. Admins can create tags from the API.</small>}
+                </div>
+              </label>
+
+              <label className="admin-field">
                 <span>Blog Content</span>
-                <textarea
+                <RichTextEditor
                   value={form.content}
-                  onChange={(event) => updateField('content', event.target.value)}
+                  onChange={(value) => updateField('content', value)}
                   onBlur={() => setTouched((current) => ({ ...current, content: true }))}
-                  placeholder="Write the full article here..."
                 />
                 {touched.content && errors.content && <small>{errors.content}</small>}
               </label>

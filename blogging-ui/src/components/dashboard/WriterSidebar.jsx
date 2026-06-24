@@ -13,11 +13,11 @@ const items = [
 
 export default function WriterSidebar() {
   const [open, setOpen] = useState(false);
-  let email = 'writer@bluepurple.local';
+  let email = 'writer@insighthub.local';
   try {
     email = JSON.parse(localStorage.getItem('auth_user') || '{}')?.email || email;
   } catch {
-    email = 'writer@bluepurple.local';
+    email = 'writer@insighthub.local';
   }
 
   return (
@@ -35,9 +35,9 @@ export default function WriterSidebar() {
 
       <aside className={`admin-sidebar ${open ? 'is-open' : ''}`}>
         <div className="admin-brand">
-          <span>BP</span>
+          <span>IH</span>
           <div>
-            <strong>BluePurple</strong>
+            <strong>InsightHub</strong>
             <small>Writer Studio</small>
           </div>
         </div>

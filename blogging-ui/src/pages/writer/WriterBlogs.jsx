@@ -12,6 +12,7 @@ export default function WriterBlogs({ draftsOnly = false }) {
   const { showToast } = useToast();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState(null);
 
   const load = useCallback(async function load() {
     setLoading(true);
@@ -29,12 +30,15 @@ export default function WriterBlogs({ draftsOnly = false }) {
   }, [load]);
 
   async function handleSubmitReview(id) {
+    setSubmittingId(id);
     try {
       await submitBlog(id);
       showToast('Blog submitted for review.');
-      load();
+      await load();
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Failed to submit blog'), 'error');
+    } finally {
+      setSubmittingId(null);
     }
   }
 
@@ -75,7 +79,17 @@ export default function WriterBlogs({ draftsOnly = false }) {
                   <span>{blog.approval_status || 'pending'}</span>
                   <div className="admin-row-actions">
                     <Link to={`/writer/blogs/${blog.id}/edit`}>Edit</Link>
-                    {blog.approval_status !== 'approved' && <button onClick={() => handleSubmitReview(blog.id)}>Submit</button>}
+                    {blog.approval_status === 'pending' ? (
+                      <button type="button" disabled>Submitted</button>
+                    ) : blog.approval_status !== 'approved' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSubmitReview(blog.id)}
+                        disabled={submittingId === blog.id}
+                      >
+                        {submittingId === blog.id ? 'Submitting...' : 'Submit'}
+                      </button>
+                    ) : null}
                     <button onClick={() => handleDelete(blog.id)}>Delete</button>
                   </div>
                 </article>

@@ -9,9 +9,9 @@ export default function Footer() {
     <footer className="bp-footer">
       <div className="bp-footer-inner">
         <div className="bp-footer-brand">
-          <span className="bp-brand-mark">BP</span>
+          <span className="bp-brand-mark">IH</span>
           <div>
-            <strong>BluePurple Blog</strong>
+            <strong>InsightHub</strong>
             <p>Premium publishing workflows for modern editorial teams.</p>
           </div>
         </div>

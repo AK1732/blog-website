@@ -8,17 +8,21 @@ import {
   getCommentsForBlog,
   rejectComment,
 } from '../controllers/commentController.js';
-import { authenticateUser, requireAdmin } from '../middleware/auth.js';
+import { authenticateUser, optionalAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-router.post('/comments', addComment);
+router.get('/posts/:uuid/comments', getCommentsForBlog);
+router.post('/posts/:uuid/comments', optionalAuth, addComment);
+router.get('/blogs/:blogId/comments', getCommentsForBlog);
+router.post('/blogs/:blogId/comments', optionalAuth, addComment);
+router.post('/comments', optionalAuth, addComment);
 router.get('/comments/blog/:blogId', getCommentsForBlog);
 
 router.get('/comments', authenticateUser, requireAdmin, getAllComments);
 router.patch('/comments/:id/approve', authenticateUser, requireAdmin, approveComment);
 router.patch('/comments/:id/reject', authenticateUser, requireAdmin, rejectComment);
-router.delete('/comments/:id', authenticateUser, requireAdmin, deleteComment);
+router.delete('/comments/:id', authenticateUser, deleteComment);
 
 export default router;
 

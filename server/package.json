@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test",
+    "test:live": "node --env-file=.env --test test/live-api.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,6 +19,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.12.0",
-    "pg": "^8.12.0"
+    "pg": "^8.12.0",
+    "redis": "^4.7.0"
   }
 }

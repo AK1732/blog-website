@@ -19,8 +19,8 @@ export default function Navbar() {
   const dashboardPath = user?.role === 'writer' ? '/writer' : '/dashboard';
   const createPath = user?.role === 'writer' ? '/writer/blogs/add' : '/dashboard/blogs/add';
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate('/login');
   }
 
@@ -28,9 +28,9 @@ export default function Navbar() {
     <header className="bp-navbar">
       <div className="bp-navbar-inner">
         <NavLink to="/" className="bp-brand">
-          <span className="bp-brand-mark">BP</span>
+          <span className="bp-brand-mark">IH</span>
           <span>
-            <strong>BluePurple Blog</strong>
+            <strong>InsightHub</strong>
             <small>Publishing platform</small>
           </span>
         </NavLink>

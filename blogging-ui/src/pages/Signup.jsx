@@ -56,8 +56,8 @@ export default function Signup() {
         email: form.email,
         password: form.password,
       });
-      showToast('Account created.');
-      navigate(result.user?.role === 'admin' ? '/dashboard' : '/writer', { replace: true });
+      showToast(result.message || 'Account created. Please verify your email before login.');
+      navigate('/login', { replace: true });
     } catch (err) {
       const message = getApiErrorMessage(err, 'Signup failed. Check that the backend and PostgreSQL are running.');
       setFormError(message === 'Network Error' ? 'Signup failed. Backend is not running or cannot reach PostgreSQL.' : message);
@@ -75,7 +75,7 @@ export default function Signup() {
             <span />
             <span />
             <span />
-            <strong>BP</strong>
+            <strong>IH</strong>
           </div>
           <p className="bp-eyebrow">Writer Access</p>
           <h1>Create your publishing account.</h1>

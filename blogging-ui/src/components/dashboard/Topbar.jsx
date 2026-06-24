@@ -8,7 +8,7 @@ export default function Topbar() {
   return (
     <header className="admin-topbar">
       <div className="admin-brand compact">
-        <span>BP</span>
+        <span>IH</span>
         <div>
           <strong>{label}</strong>
           <small>Overview</small>

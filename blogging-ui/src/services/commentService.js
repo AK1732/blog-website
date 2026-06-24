@@ -1,12 +1,13 @@
 import api from './api';
 
-export async function addComment(payload) {
-  const { data } = await api.post('/comments', payload);
+export async function addComment(payload, postIdentifier = payload?.blog_uuid || payload?.uuid) {
+  const endpoint = postIdentifier ? `/posts/${postIdentifier}/comments` : '/comments';
+  const { data } = await api.post(endpoint, payload);
   return data.comment;
 }
 
 export async function getBlogComments(blogId) {
-  const { data } = await api.get(`/comments/blog/${blogId}`);
+  const { data } = await api.get(`/posts/${blogId}/comments`);
   return data.comments || [];
 }
 

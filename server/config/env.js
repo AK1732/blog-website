@@ -12,7 +12,6 @@ export function getRequiredEnv(name) {
 
 export function validateServerEnv() {
   const required = [
-    'PORT',
     'DB_HOST',
     'DB_PORT',
     'DB_USER',
@@ -23,7 +22,8 @@ export function validateServerEnv() {
 
   required.forEach(getRequiredEnv);
 
-  const numeric = ['PORT', 'DB_PORT'];
+  const numeric = ['DB_PORT'];
+  if (process.env.PORT) numeric.push('PORT');
   numeric.forEach((name) => {
     const value = Number(process.env[name]);
     if (!Number.isInteger(value) || value <= 0) {
@@ -32,6 +32,10 @@ export function validateServerEnv() {
   });
 
   if (!process.env.MONGODB_URI) {
-    console.warn('MONGODB_URI is not set. MongoDB application logging will be skipped.');
+    console.warn('MONGODB_URI is not set. MongoDB log storage will be skipped.');
+  }
+
+  if (!process.env.REDIS_URL) {
+    console.warn('REDIS_URL is not set. Redis cache will be skipped.');
   }
 }

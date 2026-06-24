@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../../components/dashboard/Sidebar';
 import Topbar from '../../components/dashboard/Topbar';
 import { useToast } from '../../components/useToast';
-import { approveBlog, deleteBlog, getBlogs, publishBlog, rejectBlog, unpublishBlog } from '../../services/blogService';
+import { approveBlog, deleteBlog, getBlogs, publishBlog, rejectBlog, setFeaturedBlog, unpublishBlog } from '../../services/blogService';
 import { getApiErrorMessage } from '../../utils/apiError';
 import '../../styles/admin.css';
 
@@ -61,6 +61,16 @@ export default function BlogManagementAdmin() {
     }
   }
 
+  async function handleFeatured(blog) {
+    try {
+      await setFeaturedBlog(blog.id, !blog.is_featured);
+      showToast(blog.is_featured ? 'Blog removed from featured posts.' : 'Blog marked as featured.');
+      load();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to update featured status'), 'error');
+    }
+  }
+
   async function handleDelete(id) {
     if (!confirm('Delete this blog?')) return;
     try {
@@ -111,6 +121,7 @@ export default function BlogManagementAdmin() {
                     {blog.approval_status === 'pending' && <button onClick={() => handleReview(blog.id, false)}>Reject</button>}
                     {blog.status !== 'published' && <button onClick={() => handlePublish(blog.id)}>Publish</button>}
                     {blog.status === 'published' && <button onClick={() => handleUnpublish(blog.id)}>Unpublish</button>}
+                    <button onClick={() => handleFeatured(blog)}>{blog.is_featured ? 'Unfeature' : 'Feature'}</button>
                     <button onClick={() => handleDelete(blog.id)}>Delete</button>
                   </div>
                 </article>
