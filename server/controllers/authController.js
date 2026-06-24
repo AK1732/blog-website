@@ -11,6 +11,10 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 }
 
+function getVerificationExpires() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000);
+}
+
 export async function register(req, res) {
   const { name, email, password } = req.body || {};
 
@@ -32,14 +36,25 @@ export async function register(req, res) {
 
   const passwordHash = await bcrypt.hash(String(password), 12);
   const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationExpires = getVerificationExpires();
+  console.log('[email-verification:register] generated token', {
+    email: normalizedEmail,
+    verificationToken,
+    verificationExpires: verificationExpires.toISOString(),
+  });
   const insert = await query(
-    `INSERT INTO users (name, email, password, role, email_verified, verification_token)
-     VALUES ($1, $2, $3, 'writer', FALSE, $4)
-     RETURNING id, name, email, role, email_verified`,
-    [String(name).trim(), normalizedEmail, passwordHash, verificationToken]
+    `INSERT INTO users (name, email, password, role, email_verified, verification_token, verification_token_expires)
+     VALUES ($1, $2, $3, 'writer', FALSE, $4, $5)
+     RETURNING id, name, email, role, email_verified, verification_token, verification_token_expires`,
+    [String(name).trim(), normalizedEmail, passwordHash, verificationToken, verificationExpires]
   );
 
   const user = insert.rows[0];
+  console.log('[email-verification:register] stored token', {
+    email: user.email,
+    storedToken: user.verification_token,
+    verificationExpires: user.verification_token_expires,
+  });
   const verifyUrl = `${process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
   await sendEmail({
     to: user.email,
@@ -53,7 +68,13 @@ export async function register(req, res) {
     ipAddress: req.ip,
   });
   return res.status(201).json({
-    user,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      email_verified: user.email_verified,
+    },
     message: 'Registration successful. Please verify your email before login.',
   });
 
@@ -119,14 +140,51 @@ export async function login(req, res) {
 
 export async function verifyEmail(req, res) {
   const { token } = req.params;
-  const result = await query(
-    `UPDATE users
-     SET email_verified = TRUE, verification_token = NULL
-     WHERE verification_token = $1
-     RETURNING id, name, email, role, email_verified`,
+  console.log('[email-verification:verify] received token', { token });
+
+  const lookup = await query(
+    `SELECT id, name, email, role, email_verified, verification_token, verification_token_expires
+     FROM users
+     WHERE verification_token = $1`,
     [token]
   );
-  if (!result.rowCount) throw validationError('Invalid verification token', 'token');
+  const user = lookup.rows[0];
+  console.log('[email-verification:verify] DB query result', {
+    rowCount: lookup.rowCount,
+    email: user?.email,
+    isVerified: user?.email_verified,
+    storedToken: user?.verification_token,
+    verificationExpires: user?.verification_token_expires,
+  });
+
+  if (!user) throw validationError('Invalid verification token', 'token');
+
+  const expiresAt = user.verification_token_expires ? new Date(user.verification_token_expires) : null;
+  if (expiresAt && expiresAt.getTime() <= Date.now()) {
+    throw validationError('Verification token expired', 'token');
+  }
+
+  if (user.email_verified) {
+    return res.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, email_verified: true },
+      message: 'Email verified. You can now login.',
+    });
+  }
+
+  const result = await query(
+    `UPDATE users
+     SET email_verified = TRUE
+     WHERE id = $1
+     RETURNING id, name, email, role, email_verified, verification_token, verification_token_expires`,
+    [user.id]
+  );
+  console.log('[email-verification:verify] update result', {
+    rowCount: result.rowCount,
+    email: result.rows[0]?.email,
+    isVerified: result.rows[0]?.email_verified,
+    storedToken: result.rows[0]?.verification_token,
+    verificationExpires: result.rows[0]?.verification_token_expires,
+  });
 
   await loggerService.logActivity({
     userId: result.rows[0].id,
@@ -134,7 +192,38 @@ export async function verifyEmail(req, res) {
     details: {},
     ipAddress: req.ip,
   });
-  return res.json({ user: result.rows[0], message: 'Email verified. You can now login.' });
+  return res.json({
+    user: {
+      id: result.rows[0].id,
+      name: result.rows[0].name,
+      email: result.rows[0].email,
+      role: result.rows[0].role,
+      email_verified: result.rows[0].email_verified,
+    },
+    message: 'Email verified. You can now login.',
+  });
+}
+
+export async function debugVerification(req, res) {
+  const normalizedEmail = String(req.params.email || '').trim().toLowerCase();
+  if (!isValidEmail(normalizedEmail)) {
+    throw validationError('valid email is required', 'email');
+  }
+
+  const { rows } = await query(
+    `SELECT email, email_verified, verification_token, verification_token_expires
+     FROM users
+     WHERE email = $1`,
+    [normalizedEmail]
+  );
+  const user = rows[0];
+
+  return res.json({
+    email: normalizedEmail,
+    isVerified: user?.email_verified ?? null,
+    verificationToken: user?.verification_token ?? null,
+    verificationExpires: user?.verification_token_expires ?? null,
+  });
 }
 
 export async function forgotPassword(req, res) {

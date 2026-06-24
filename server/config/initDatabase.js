@@ -23,6 +23,7 @@ export async function initializeDatabase() {
       profile_image VARCHAR(2000) DEFAULT '',
       email_verified BOOLEAN DEFAULT FALSE,
       verification_token VARCHAR(255),
+      verification_token_expires TIMESTAMP,
       reset_token VARCHAR(255),
       reset_token_expires TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -34,6 +35,7 @@ export async function initializeDatabase() {
   await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image VARCHAR(2000) DEFAULT ''");
   await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE");
   await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255)");
+  await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP");
   await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255)");
   await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP");
   await query(`
