@@ -9,6 +9,33 @@ const defaultAdmin = {
   role: 'admin',
 };
 
+const defaultCategories = [
+  'General',
+  'Technology',
+  'AI',
+  'Web Development',
+  'Programming',
+  'Education',
+];
+
+const defaultTags = [
+  'AI',
+  'React',
+  'Node.js',
+  'PostgreSQL',
+  'Web Development',
+  'Tutorial',
+];
+
+function slugify(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90);
+}
+
 export async function initializeDatabase() {
   await query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
 
@@ -112,6 +139,25 @@ export async function initializeDatabase() {
   `);
   await query("CREATE INDEX IF NOT EXISTS idx_blog_tags_blog_id ON blog_tags(blog_id)");
   await query("CREATE INDEX IF NOT EXISTS idx_blog_tags_tag_id ON blog_tags(tag_id)");
+
+  for (const name of defaultCategories) {
+    await query(
+      `INSERT INTO categories (name)
+       VALUES ($1)
+       ON CONFLICT (name) DO NOTHING`,
+      [name]
+    );
+  }
+
+  for (const name of defaultTags) {
+    await query(
+      `INSERT INTO tags (name, slug)
+       VALUES ($1, $2)
+       ON CONFLICT (slug)
+       DO UPDATE SET name = EXCLUDED.name`,
+      [name, slugify(name)]
+    );
+  }
 
   const passwordHash = await bcrypt.hash(defaultAdmin.password, 12);
   await query(

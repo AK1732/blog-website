@@ -81,6 +81,20 @@ function plainText(value) {
   return String(value || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }
 
+const DEFAULT_TAGS = [
+  'AI',
+  'React',
+  'Node.js',
+  'PostgreSQL',
+  'Web Development',
+  'Tutorial',
+].map((name) => ({ id: `default-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, name, fallback: true }));
+
+function isPositiveIntegerId(value) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0;
+}
+
 export default function AddBlogAdmin() {
   const { id } = useParams();
   const editing = Boolean(id);
@@ -100,14 +114,33 @@ export default function AddBlogAdmin() {
   });
   const [touched, setTouched] = useState({});
   const [serverErrors, setServerErrors] = useState({});
+  const [loadErrors, setLoadErrors] = useState({ categories: '', tags: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
+      let categoryRows = [];
+      let tagRows = [];
+
       try {
-        const [categoryRows, tagRows] = await Promise.all([getCategories(), getTags().catch(() => [])]);
+        categoryRows = await getCategories();
+      } catch (err) {
+        const message = getApiErrorMessage(err, 'Could not load categories. Try refreshing the page.');
+        setLoadErrors((current) => ({ ...current, categories: message }));
+        showToast(message, 'error');
+      }
+
+      try {
+        tagRows = await getTags();
+      } catch (err) {
+        const message = getApiErrorMessage(err, 'Could not load tags. Default tag suggestions are shown.');
+        setLoadErrors((current) => ({ ...current, tags: message }));
+        showToast(message, 'error');
+      }
+
+      try {
         setCategories(categoryRows);
-        setTags(tagRows);
+        setTags(tagRows.length ? tagRows : DEFAULT_TAGS);
         if (editing) {
           const blog = await getBlog(id);
           setForm({
@@ -115,21 +148,19 @@ export default function AddBlogAdmin() {
             content: blog.content || '',
             image: blog.image || '',
             category_id: blog.category_id || '',
-            tag_ids: (blog.tags || []).map((tag) => tag.id),
+            tag_ids: (blog.tags || []).map((tag) => tag.id).filter(isPositiveIntegerId),
             status: blog.status || 'draft',
           });
         }
-      } catch {
-        setCategories([
-          { id: 'strategy', name: 'Strategy' },
-          { id: 'design', name: 'Design' },
-          { id: 'engineering', name: 'Engineering' },
-        ]);
+      } catch (err) {
+        const message = getApiErrorMessage(err, 'Could not load this blog for editing.');
+        setLoadErrors((current) => ({ ...current, blog: message }));
+        showToast(message, 'error');
       }
     }
 
     load();
-  }, [editing, id]);
+  }, [editing, id, showToast]);
 
   useEffect(() => {
     if (!currentUser || (!form.title.trim() && !form.content.trim())) return undefined;
@@ -156,7 +187,7 @@ export default function AddBlogAdmin() {
   }
 
   function hasSelectedValidCategory() {
-    return categories.some((category) => String(category.id) === String(form.category_id));
+    return isPositiveIntegerId(form.category_id) && categories.some((category) => String(category.id) === String(form.category_id));
   }
 
   function toggleTag(tagId) {
@@ -194,6 +225,9 @@ export default function AddBlogAdmin() {
     if (!form.title.trim()) clientErrors.title = 'Blog title is required';
     if (!plainText(form.content)) clientErrors.content = 'Blog content is required';
     if (categoryIsRequired(action) && !form.category_id) clientErrors.category_id = 'Blog category is required';
+    else if (categoryIsRequired(action) && loadErrors.categories) {
+      clientErrors.category_id = 'Categories could not be loaded. Refresh the page before submitting.';
+    }
     else if (form.category_id && !hasSelectedValidCategory()) {
       clientErrors.category_id = 'Please select a valid blog category';
     }
@@ -205,7 +239,13 @@ export default function AddBlogAdmin() {
     setSaving(true);
     try {
       const status = isWriter ? 'draft' : action;
-      const payload = { ...form, status, approval_status: action === 'submit' ? 'pending' : form.approval_status };
+      const payload = {
+        ...form,
+        category_id: form.category_id ? Number(form.category_id) : '',
+        tag_ids: form.tag_ids.filter(isPositiveIntegerId).map(Number),
+        status,
+        approval_status: action === 'submit' ? 'pending' : form.approval_status,
+      };
       const blog = editing ? await updateBlog(id, payload) : await createBlog(payload);
       if (action === 'submit') await submitBlog(blog.id);
       showToast(action === 'submit' ? 'Blog submitted for review.' : status === 'published' ? 'Blog published.' : 'Draft saved.');
@@ -261,13 +301,14 @@ export default function AddBlogAdmin() {
                 <label className="admin-field">
                   <span>Category</span>
                   <select value={form.category_id} onChange={(event) => updateField('category_id', event.target.value)}>
-                    <option value="">General</option>
+                    <option value="">Select category</option>
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
                     ))}
                   </select>
+                  {loadErrors.categories && <small>{loadErrors.categories}</small>}
                   {touched.category_id && errors.category_id && <small>{errors.category_id}</small>}
                 </label>
 
@@ -297,7 +338,7 @@ export default function AddBlogAdmin() {
                       {tag.name}
                     </button>
                   ))}
-                  {!tags.length && <small>No tags yet. Admins can create tags from the API.</small>}
+                  {loadErrors.tags && <small>{loadErrors.tags}</small>}
                 </div>
               </label>
 

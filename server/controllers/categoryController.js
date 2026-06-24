@@ -20,7 +20,11 @@ export async function createCategory(req, res) {
   const name = categoryName(req.body?.name);
 
   const result = await query(
-    'INSERT INTO categories (name) VALUES ($1) RETURNING *',
+    `INSERT INTO categories (name)
+     VALUES ($1)
+     ON CONFLICT (name)
+     DO UPDATE SET name = EXCLUDED.name
+     RETURNING *`,
     [name]
   );
   await loggerService.logActivity({ userId: req.user.id, action: 'CATEGORY_CREATE', details: { categoryId: result.rows[0].id }, ipAddress: req.ip });
